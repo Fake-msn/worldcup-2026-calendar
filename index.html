@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026世界杯日历订阅服务</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 40px 0;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            color: #a0a0a0;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #e94560;
+        }
+        
+        .subscription-link {
+            background: rgba(233, 69, 96, 0.1);
+            border: 2px dashed #e94560;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        
+        .subscription-link code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #e94560;
+        }
+        
+        .link-label {
+            font-size: 0.8rem;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 10px 5px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(90deg, #0f3460, #16213e);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .steps {
+            list-style: none;
+            counter-reset: step;
+        }
+        
+        .steps li {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .steps li::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .match-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .match-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.3s;
+        }
+        
+        .match-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .match-teams {
+            flex: 1;
+        }
+        
+        .match-time {
+            color: #a0a0a0;
+            font-size: 0.85rem;
+        }
+        
+        .match-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-finished {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        
+        .status-scheduled {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+        }
+        
+        .status-live {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .platform-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .platform-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .platform-tab.active {
+            background: rgba(233, 69, 96, 0.2);
+            border-color: #e94560;
+        }
+        
+        .platform-content {
+            display: none;
+        }
+        
+        .platform-content.active {
+            display: block;
+        }
+        
+        .mirror-badge {
+            display: inline-block;
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        .mirror-badge.global {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+        
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            .card {
+                padding: 20px;
+            }
+            .subscription-link code {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 2026世界杯日历订阅</h1>
+            <p>实时赛况更新 · 手机日历同步 · 一键分享</p>
+        </div>
+        
+        <div class="card">
+            <h2>📱 订阅链接</h2>
+            <p>复制以下链接，按照下方教程导入到您的手机日历：</p>
+            
+            <div class="subscription-link">
+                <div class="link-label">🌐 全球访问 <span class="mirror-badge global">GitHub</span></div>
+                <code id="subscription-url-global">https://your-github-username.github.io/worldcup-2026-calendar/worldcup-2026-calendar.ics</code>
+            </div>
+            
+            <div class="subscription-link">
+                <div class="link-label">🇨🇳 国内镜像 <span class="mirror-badge">反代加速</span></div>
+                <code id="subscription-url-mirror">https://ghproxy.com/https://raw.githubusercontent.com/your-github-username/worldcup-2026-calendar/main/worldcup-2026-calendar.ics</code>
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn" onclick="copyLink('global')">📋 复制全球链接</button>
+                <button class="btn btn-secondary" onclick="copyLink('mirror')">📋 复制国内镜像</button>
+                <a href="worldcup-2026-calendar.ics" class="btn" download>📥 下载ICS文件</a>
+            </div>
+            
+            <p style="margin-top: 15px; font-size: 0.85rem; color: #a0a0a0;">
+                💡 提示：国内用户建议使用镜像链接，访问更稳定。iPhone用户可直接在Safari中打开链接自动添加日历。
+            </p>
+        </div>
+        
+        <div class="card">
+            <h2>📖 导入教程</h2>
+            <div class="platform-tabs">
+                <div class="platform-tab active" onclick="showPlatform('ios')">iPhone</div>
+                <div class="platform-tab" onclick="showPlatform('android')">Android</div>
+                <div class="platform-tab" onclick="showPlatform('google')">Google日历</div>
+            </div>
+            
+            <div id="ios" class="platform-content active">
+                <ol class="steps">
+                    <li>打开<strong>设置</strong> → <strong>日历</strong> → <strong>账户</strong></li>
+                    <li>点击<strong>添加账户</strong> → 选择<strong>其他</strong></li>
+                    <li>选择<strong>添加已订阅的日历</strong></li>
+                    <li>粘贴上面的订阅链接，点击<strong>下一步</strong></li>
+                    <li>完成订阅，打开日历App即可查看</li>
+                </ol>
+                <p style="color: #a0a0a0; font-size: 0.9rem; margin-top: 10px;">
+                    📌 快捷方式：直接在Safari中打开订阅链接，系统会自动提示添加日历。
+                </p>
+            </div>
+            
+            <div id="android" class="platform-content">
+                <ol class="steps">
+                    <li>打开<strong>Google日历</strong>应用</li>
+                    <li>点击左上角<strong>☰ 菜单</strong> → <strong>设置</strong></li>
+                    <li>选择<strong>添加日历</strong> → <strong>从URL添加</strong></li>
+                    <li>粘贴订阅链接，点击<strong>确定</strong></li>
+                    <li>日历将自动同步到您的设备</li>
+                </ol>
+            </div>
+            
+            <div id="google" class="platform-content">
+                <ol class="steps">
+                    <li>访问 <strong>calendar.google.com</strong></li>
+                    <li>左侧点击<strong>+ 其他日历</strong> → <strong>通过链接添加</strong></li>
+                    <li>粘贴订阅链接，点击<strong>添加日历</strong></li>
+                    <li>日历将出现在您的Google日历列表中</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📅 近期赛程</h2>
+            <div class="match-list">
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>巴西 vs 海地</strong>
+                        <div class="match-time">2026-06-19 16:00 | 费城 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>苏格兰 vs 摩洛哥</strong>
+                        <div class="match-time">2026-06-19 19:00 | 波士顿 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>土耳其 vs 巴拉圭</strong>
+                        <div class="match-time">2026-06-19 22:00 | 旧金山湾区 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>美国 vs 澳大利亚</strong>
+                        <div class="match-time">2026-06-20 01:00 | 西雅图 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>德国 vs 科特迪瓦</strong>
+                        <div class="match-time">2026-06-20 16:00 | 多伦多 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>厄瓜多尔 vs 库拉索</strong>
+                        <div class="match-time">2026-06-20 19:00 | 堪萨斯城 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>荷兰 vs 瑞典</strong>
+                        <div class="match-time">2026-06-20 22:00 | 休斯顿 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>突尼斯 vs 日本</strong>
+                        <div class="match-time">2026-06-21 01:00 | 蒙特雷 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>比利时 vs 伊朗</strong>
+                        <div class="match-time">2026-06-21 16:00 | 洛杉矶 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>新西兰 vs 埃及</strong>
+                        <div class="match-time">2026-06-21 19:00 | 温哥华 | 小组赛</div>
+                    </div>
+                    <span class="match-status status-scheduled">未开始</span>
+                </div>
+
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>⚙️ 技术说明</h2>
+            <p><strong>数据更新频率：</strong>每小时自动更新</p>
+            <p><strong>数据格式：</strong>标准ICS日历格式 (RFC 5545)</p>
+            <p><strong>支持平台：</strong>iOS日历、Google日历、Outlook、小米日历等</p>
+            <p><strong>提醒设置：</strong>比赛开始前30分钟自动提醒</p>
+            <p><strong>数据来源：</strong>FIFA官方赛程</p>
+            <p><strong>国内加速：</strong>通过ghproxy.com反代镜像，国内访问更稳定</p>
+        </div>
+        
+        <div class="footer">
+            <p>2026 FIFA World Cup Calendar Subscription Service</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">数据仅供参考，请以FIFA官方公布为准</p>
+        </div>
+    </div>
+    
+    <script>
+        function copyLink(type) {
+            const url = document.getElementById('subscription-url-' + type).textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('订阅链接已复制到剪贴板！');
+            });
+        }
+        
+        function showPlatform(platform) {
+            document.querySelectorAll('.platform-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.platform-content').forEach(content => content.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(platform).classList.add('active');
+        }
+    </script>
+</body>
+</html>
