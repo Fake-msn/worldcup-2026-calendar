@@ -952,11 +952,22 @@ def generate_html(matches):
     print(f"  HTML页面已保存: {filepath}")
 
 
+# 世界杯结束后自动停止抓取的截止日期（决赛后一周）
+CUTOFF_DATE = TIMEZONE_BEIJING.localize(datetime(2026, 7, 26, 23, 59, 59))
+
+
 def main():
     print("=" * 60)
     print("2026 FIFA World Cup 实时赛况抓取器")
-    print(f"运行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"运行时间: {datetime.now(TIMEZONE_BEIJING).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
+
+    # 检查是否已过截止日期
+    now = datetime.now(TIMEZONE_BEIJING)
+    if now > CUTOFF_DATE:
+        print(f"\n世界杯已结束（截止日期: {CUTOFF_DATE.strftime('%Y-%m-%d')}），停止自动更新。")
+        print("如需重新启用，请修改脚本中的 CUTOFF_DATE 变量。")
+        sys.exit(0)
 
     # 1. 抓取所有比赛数据
     print("\n[1/4] 从ESPN API抓取赛况数据...")
