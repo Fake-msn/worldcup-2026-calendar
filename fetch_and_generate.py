@@ -231,6 +231,34 @@ def parse_espn_event(event):
                 group_name = c["group"].get("name", "")
                 break
         
+        # 解析进球事件
+        goals = []
+        details = comp.get("details", [])
+        for detail in details:
+            event_type = detail.get("type", {})
+            if event_type.get("id") == "70" or event_type.get("text") == "Goal":
+                clock = detail.get("clock", {})
+                time_display = clock.get("displayValue", "")
+                athletes = detail.get("athletesInvolved", [])
+                player_name = athletes[0].get("displayName", "未知球员") if athletes else "未知球员"
+                team_id = detail.get("team", {}).get("id", "")
+                
+                # 判断进球类型
+                goal_type = ""
+                if detail.get("penaltyKick"):
+                    goal_type = "(点球)"
+                elif detail.get("ownGoal"):
+                    goal_type = "(乌龙)"
+                elif detail.get("shootout"):
+                    goal_type = "(点球大战)"
+                
+                goals.append({
+                    "time": time_display,
+                    "player": player_name,
+                    "team_id": team_id,
+                    "type": goal_type,
+                })
+        
         # 比分显示
         if home_score is not None and away_score is not None:
             score_display = f"{home_score}-{away_score}"
@@ -251,6 +279,7 @@ def parse_espn_event(event):
             "venue": venue_name,
             "group": group_name,
             "espn_id": event_id,
+            "goals": goals,
         }
     except Exception as e:
         print(f"  解析比赛数据失败: {e}")
@@ -301,7 +330,17 @@ def generate_ics(matches):
             desc_lines.append(f"小组：{match['group']}")
         if match["score"] != "-":
             desc_lines.append(f"赛果：{match['home']} {match['score']} {match['away']}")
-        desc_lines.append(f"\nESPN：https://www.espn.com/soccer/match/_/gameId/{match['espn_id']}")
+        
+        # 添加进球球员信息
+        if match.get("goals"):
+            desc_lines.append("")
+            desc_lines.append("⚽ 进球记录：")
+            for goal in match["goals"]:
+                goal_line = f"  {goal['time']} {goal['player']} {goal['type']}"
+                desc_lines.append(goal_line)
+        
+        desc_lines.append("")
+        desc_lines.append(f"ESPN：https://www.espn.com/soccer/match/_/gameId/{match['espn_id']}")
         desc_lines.append(f"自动更新，数据来源为ESPN公开数据")
         
         description = "\n".join(desc_lines)
@@ -382,11 +421,24 @@ def generate_html(matches):
             status_text = "未开始"
             teams = f"{m['home']} vs {m['away']}"
         
+        # 进球球员信息
+        goals_html = ""
+        if m.get("goals"):
+            goals_list = []
+            for goal in m["goals"]:
+                goal_str = f"{goal['time']} {goal['player']}"
+                if goal['type']:
+                    goal_str += f" {goal['type']}"
+                goals_list.append(goal_str)
+            if goals_list:
+                goals_html = f'<div style="color: #a0a0a0; font-size: 0.8rem; margin-top: 4px;">⚽ {" · ".join(goals_list)}</div>'
+        
         matches_html += f"""
                 <div class="match-item">
                     <div class="match-teams">
                         <strong>{teams}</strong>
                         <div class="match-time">{beijing_time} | {m['venue']}{group_info}</div>
+                        {goals_html}
                     </div>
                     <span class="match-status {status_class}">{status_text}</span>
                 </div>
