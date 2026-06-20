@@ -5,252 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2026世界杯日历订阅服务</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            color: #fff;
-            padding: 20px;
+            min-height: 100vh; color: #fff; padding: 20px;
         }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            text-align: center;
-            padding: 40px 0;
-        }
-        
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; padding: 40px 0; }
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-size: 2.5rem; margin-bottom: 10px;
             background: linear-gradient(90deg, #e94560, #ff6b6b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
-        
-        .header p {
-            color: #a0a0a0;
-            font-size: 1.1rem;
-        }
-        
+        .header p { color: #a0a0a0; font-size: 1.1rem; }
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px; padding: 30px; margin-bottom: 20px; backdrop-filter: blur(10px);
         }
-        
-        .card h2 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            color: #e94560;
-        }
-        
+        .card h2 { font-size: 1.5rem; margin-bottom: 20px; color: #e94560; }
         .subscription-link {
-            background: rgba(233, 69, 96, 0.1);
-            border: 2px dashed #e94560;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin: 20px 0;
+            background: rgba(233, 69, 96, 0.1); border: 2px dashed #e94560;
+            border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;
             word-break: break-all;
         }
-        
         .subscription-link code {
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            color: #e94560;
+            font-family: 'Courier New', monospace; font-size: 0.85rem; color: #e94560;
         }
-        
-        .link-label {
-            font-size: 0.8rem;
-            color: #a0a0a0;
-            margin-bottom: 8px;
-        }
-        
+        .link-label { font-size: 0.8rem; color: #a0a0a0; margin-bottom: 8px; }
         .btn {
-            display: inline-block;
-            background: linear-gradient(90deg, #e94560, #ff6b6b);
-            color: #fff;
-            padding: 12px 30px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 600;
-            margin: 10px 5px;
-            transition: transform 0.3s, box-shadow 0.3s;
-            border: none;
-            cursor: pointer;
+            display: inline-block; background: linear-gradient(90deg, #e94560, #ff6b6b);
+            color: #fff; padding: 12px 30px; border-radius: 25px; text-decoration: none;
+            font-weight: 600; margin: 10px 5px; transition: transform 0.3s, box-shadow 0.3s;
+            border: none; cursor: pointer;
         }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3);
-        }
-        
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3); }
         .btn-secondary {
             background: linear-gradient(90deg, #0f3460, #16213e);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
-        .steps {
-            list-style: none;
-            counter-reset: step;
-        }
-        
+        .steps { list-style: none; counter-reset: step; }
         .steps li {
-            position: relative;
-            padding-left: 50px;
-            margin-bottom: 20px;
-            line-height: 1.6;
+            position: relative; padding-left: 50px; margin-bottom: 20px; line-height: 1.6;
         }
-        
         .steps li::before {
-            counter-increment: step;
-            content: counter(step);
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 35px;
-            height: 35px;
-            background: linear-gradient(135deg, #e94560, #ff6b6b);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.9rem;
+            counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0;
+            width: 35px; height: 35px; background: linear-gradient(135deg, #e94560, #ff6b6b);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 0.9rem;
         }
-        
-        .match-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
+        .match-list { max-height: 500px; overflow-y: auto; }
         .match-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             transition: background 0.3s;
         }
-        
-        .match-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-        }
-        
-        .match-teams {
-            flex: 1;
-        }
-        
-        .match-time {
-            color: #a0a0a0;
-            font-size: 0.85rem;
-        }
-        
+        .match-item:hover { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
+        .match-teams { flex: 1; }
+        .match-time { color: #a0a0a0; font-size: 0.85rem; }
         .match-status {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;
         }
-        
-        .status-finished {
-            background: rgba(46, 204, 113, 0.2);
-            color: #2ecc71;
-        }
-        
-        .status-scheduled {
-            background: rgba(241, 196, 15, 0.2);
-            color: #f1c40f;
-        }
-        
-        .status-live {
-            background: rgba(231, 76, 60, 0.2);
-            color: #e74c3c;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 40px 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-        
-        .platform-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
+        .status-finished { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+        .status-scheduled { background: rgba(241, 196, 15, 0.2); color: #f1c40f; }
+        .status-live { background: rgba(231, 76, 60, 0.2); color: #e74c3c; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .footer { text-align: center; padding: 40px 0; color: #666; font-size: 0.9rem; }
+        .platform-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .platform-tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
+            flex: 1; padding: 10px; text-align: center;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; cursor: pointer; transition: all 0.3s;
         }
-        
-        .platform-tab.active {
-            background: rgba(233, 69, 96, 0.2);
-            border-color: #e94560;
-        }
-        
-        .platform-content {
-            display: none;
-        }
-        
-        .platform-content.active {
-            display: block;
-        }
-        
+        .platform-tab.active { background: rgba(233, 69, 96, 0.2); border-color: #e94560; }
+        .platform-content { display: none; }
+        .platform-content.active { display: block; }
         .mirror-badge {
-            display: inline-block;
-            background: rgba(46, 204, 113, 0.2);
-            color: #2ecc71;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            margin-left: 8px;
+            display: inline-block; background: rgba(52, 152, 219, 0.2); color: #3498db;
+            padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;
         }
-        
-        .mirror-badge.global {
-            background: rgba(52, 152, 219, 0.2);
-            color: #3498db;
+        .stats { display: flex; gap: 15px; justify-content: center; margin: 15px 0; }
+        .stat-item {
+            text-align: center; padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 10px;
         }
-        
+        .stat-num { font-size: 1.5rem; font-weight: bold; color: #e94560; }
+        .stat-label { font-size: 0.75rem; color: #a0a0a0; margin-top: 4px; }
+        .update-info {
+            text-align: center; font-size: 0.8rem; color: #666;
+            padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-top: 15px;
+        }
         @media (max-width: 600px) {
-            .header h1 {
-                font-size: 1.8rem;
-            }
-            .card {
-                padding: 20px;
-            }
-            .subscription-link code {
-                font-size: 0.75rem;
-            }
+            .header h1 { font-size: 1.8rem; }
+            .card { padding: 20px; }
+            .subscription-link code { font-size: 0.75rem; }
+            .stats { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -258,7 +107,32 @@
     <div class="container">
         <div class="header">
             <h1>🏆 2026世界杯日历订阅</h1>
-            <p>实时赛况更新 · 手机日历同步 · 一键分享</p>
+            <p>实时赛况自动更新 · 手机日历同步 · 一键分享</p>
+        </div>
+        
+        <div class="card">
+            <h2>📊 赛事统计</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-num">104</div>
+                    <div class="stat-label">总场次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">31</div>
+                    <div class="stat-label">已结束</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">1</div>
+                    <div class="stat-label">进行中</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">72</div>
+                    <div class="stat-label">未开始</div>
+                </div>
+            </div>
+            <div class="update-info">
+                🕐 数据更新时间：2026-06-20 12:38:37 UTC+8（每30分钟自动抓取ESPN数据）
+            </div>
         </div>
         
         <div class="card">
@@ -266,12 +140,12 @@
             <p>复制以下链接，按照下方教程导入到您的手机日历：</p>
             
             <div class="subscription-link">
-                <div class="link-label">🌐 订阅链接 <span class="mirror-badge global">GitHub Pages</span></div>
-                <code id="subscription-url-global">https://Fake-msn.github.io/worldcup-2026-calendar/worldcup-2026-calendar.ics</code>
+                <div class="link-label">🌐 订阅链接 <span class="mirror-badge">GitHub Pages</span></div>
+                <code id="subscription-url">https://Fake-msn.github.io/worldcup-2026-calendar/worldcup-2026-calendar.ics</code>
             </div>
             
             <div style="text-align: center;">
-                <button class="btn" onclick="copyLink('global')">📋 复制订阅链接</button>
+                <button class="btn" onclick="copyLink()">📋 复制订阅链接</button>
                 <a href="worldcup-2026-calendar.ics" class="btn" download>📥 下载ICS文件</a>
             </div>
             
@@ -287,7 +161,7 @@
                     <li>选择刚才下载的ICS文件导入</li>
                 </ol>
                 <p style="font-size: 0.85rem; color: #a0a0a0; margin-top: 10px;">
-                    📌 虽然导入的文件不会自动更新，但您可以定期重新下载最新版本获取最新赛况。
+                    📌 文件导入后不会自动更新，建议比赛日前重新下载最新版本。
                 </p>
             </div>
         </div>
@@ -336,85 +210,101 @@
         <div class="card">
             <h2>📅 近期赛程</h2>
             <div class="match-list">
-
+                
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>巴西 vs 海地</strong>
-                        <div class="match-time">2026-06-19 16:00 | 费城 | 小组赛</div>
+                        <strong>葡萄牙 1-1 刚果（金）</strong>
+                        <div class="match-time">2026-06-18 01:00 | 休斯顿</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>苏格兰 vs 摩洛哥</strong>
-                        <div class="match-time">2026-06-19 19:00 | 波士顿 | 小组赛</div>
+                        <strong>英格兰 4-2 克罗地亚</strong>
+                        <div class="match-time">2026-06-18 04:00 | 达拉斯</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>土耳其 vs 巴拉圭</strong>
-                        <div class="match-time">2026-06-19 22:00 | 旧金山湾区 | 小组赛</div>
+                        <strong>加纳 1-0 巴拿马</strong>
+                        <div class="match-time">2026-06-18 07:00 | 多伦多</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>美国 vs 澳大利亚</strong>
-                        <div class="match-time">2026-06-20 01:00 | 西雅图 | 小组赛</div>
+                        <strong>乌兹别克斯坦 1-3 哥伦比亚</strong>
+                        <div class="match-time">2026-06-18 10:00 | 墨西哥城</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>德国 vs 科特迪瓦</strong>
-                        <div class="match-time">2026-06-20 16:00 | 多伦多 | 小组赛</div>
+                        <strong>捷克 1-1 南非</strong>
+                        <div class="match-time">2026-06-19 00:00 | 亚特兰大</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>厄瓜多尔 vs 库拉索</strong>
-                        <div class="match-time">2026-06-20 19:00 | 堪萨斯城 | 小组赛</div>
+                        <strong>瑞士 4-1 Bosnia-Herzegovina</strong>
+                        <div class="match-time">2026-06-19 03:00 | 洛杉矶</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>荷兰 vs 瑞典</strong>
-                        <div class="match-time">2026-06-20 22:00 | 休斯顿 | 小组赛</div>
+                        <strong>加拿大 6-0 卡塔尔</strong>
+                        <div class="match-time">2026-06-19 06:00 | 温哥华</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>突尼斯 vs 日本</strong>
-                        <div class="match-time">2026-06-21 01:00 | 蒙特雷 | 小组赛</div>
+                        <strong>墨西哥 1-0 South Korea</strong>
+                        <div class="match-time">2026-06-19 09:00 | 瓜达拉哈拉</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>比利时 vs 伊朗</strong>
-                        <div class="match-time">2026-06-21 16:00 | 洛杉矶 | 小组赛</div>
+                        <strong>美国 2-0 澳大利亚</strong>
+                        <div class="match-time">2026-06-20 03:00 | 西雅图</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
                 </div>
 
                 <div class="match-item">
                     <div class="match-teams">
-                        <strong>新西兰 vs 埃及</strong>
-                        <div class="match-time">2026-06-21 19:00 | 温哥华 | 小组赛</div>
+                        <strong>苏格兰 0-1 摩洛哥</strong>
+                        <div class="match-time">2026-06-20 06:00 | 波士顿</div>
                     </div>
-                    <span class="match-status status-scheduled">未开始</span>
+                    <span class="match-status status-finished">已结束</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>巴西 3-0 海地</strong>
+                        <div class="match-time">2026-06-20 08:30 | 费城</div>
+                    </div>
+                    <span class="match-status status-finished">已结束</span>
+                </div>
+
+                <div class="match-item">
+                    <div class="match-teams">
+                        <strong>Türkiye 0-1 巴拉圭</strong>
+                        <div class="match-time">2026-06-20 11:00 | 旧金山湾区</div>
+                    </div>
+                    <span class="match-status status-live">下半场</span>
                 </div>
 
             </div>
@@ -422,12 +312,12 @@
         
         <div class="card">
             <h2>⚙️ 技术说明</h2>
-            <p><strong>数据更新频率：</strong>每小时自动更新</p>
+            <p><strong>数据来源：</strong>ESPN足球数据API（实时比分）</p>
+            <p><strong>更新频率：</strong>每30分钟自动抓取（GitHub Actions）</p>
             <p><strong>数据格式：</strong>标准ICS日历格式 (RFC 5545)</p>
             <p><strong>支持平台：</strong>iOS日历、Google日历、Outlook、小米日历等</p>
             <p><strong>提醒设置：</strong>比赛开始前30分钟自动提醒</p>
-            <p><strong>数据来源：</strong>FIFA官方赛程</p>
-            <p><strong>订阅方式：</strong>URL订阅（全球用户）或 文件导入（国内用户）</p>
+            <p><strong>赛况显示：</strong>已结束显示比分，进行中显示实时状态</p>
         </div>
         
         <div class="footer">
@@ -437,8 +327,8 @@
     </div>
     
     <script>
-        function copyLink(type) {
-            const url = document.getElementById('subscription-url-' + type).textContent;
+        function copyLink() {
+            const url = document.getElementById('subscription-url').textContent;
             navigator.clipboard.writeText(url).then(() => {
                 alert('订阅链接已复制到剪贴板！');
             });
