@@ -24,22 +24,51 @@ HTML_OUTPUT_PATH = os.environ.get("HTML_OUTPUT", "index.html")
 TIMEZONE_BEIJING = pytz.timezone("Asia/Shanghai")
 TIMEZONE_UTC = pytz.UTC
 
-# 比赛状态映射 (ESPN -> 中文)
+# 比赛状态映射 (ESPN -> (英文状态, Emoji, 中文))
 ESPN_STATUS_MAP = {
     "STATUS_SCHEDULED": ("Scheduled", "⏳", "未开始"),
     "STATUS_IN_PROGRESS": ("In Progress", "🔴", "进行中"),
     "STATUS_HALFTIME": ("Halftime", "🟡", "中场休息"),
     "STATUS_FINAL": ("Full Time", "✅", "已结束"),
+    "STATUS_FULL_TIME": ("Full Time", "✅", "已结束"),
     "STATUS_POSTPONED": ("Postponed", "⏸️", "推迟"),
     "STATUS_CANCELLED": ("Cancelled", "❌", "取消"),
-    "STATUS_DELAYED": ("Delayed", "⟠", "延迟"),
+    "STATUS_DELAYED": ("Delayed", "⏱️", "延迟"),
     "STATUS_END_PERIOD": ("End of Period", "🟡", "阶段结束"),
     "STATUS_FIRST_HALF": ("First Half", "🔴", "上半场"),
     "STATUS_SECOND_HALF": ("Second Half", "🔴", "下半场"),
     "STATUS_EXTRA_TIME": ("Extra Time", "🔴", "加时赛"),
+    "STATUS_FIRST_EXTRA": ("Extra Time", "🔴", "加时赛上半"),
+    "STATUS_SECOND_EXTRA": ("Extra Time", "🔴", "加时赛下半"),
     "STATUS_PENALTY_SHOOTOUT": ("Penalty Shootout", "🔴", "点球大战"),
     "STATUS_ABANDONED": ("Abandoned", "❌", "取消"),
+    "STATUS_SUSPENDED": ("Suspended", "⏸️", "暂停"),
+    "STATUS_WALKOVER": ("Walkover", "✅", "弃权胜"),
 }
+# 已结束的状态集合
+FINISHED_STATUSES = {"Full Time", "FINAL", "Walkover"}
+# 进行中的状态集合
+LIVE_STATUSES = {"In Progress", "Halftime", "First Half", "Second Half",
+                 "Extra Time", "Penalty Shootout", "End of Period"}
+
+
+def get_status_fallback(status_name, status_desc):
+    """安全获取状态信息，避免未知状态名导致错误emoji"""
+    if status_name in ESPN_STATUS_MAP:
+        return ESPN_STATUS_MAP[status_name]
+    # 根据描述智能判断
+    desc_lower = status_desc.lower()
+    if any(w in desc_lower for w in ["final", "full", "finished", "ended", "complete", "over"]):
+        return (status_desc, "✅", "已结束")
+    if any(w in desc_lower for w in ["progress", "live", "playing", "half", "extra", "penalty"]):
+        return (status_desc, "🔴", "进行中")
+    if any(w in desc_lower for w in ["delay", "suspend", "postpone"]):
+        return (status_desc, "⏸️", "暂停")
+    if any(w in desc_lower for w in ["cancel", "abandon"]):
+        return (status_desc, "❌", "取消")
+    # 默认：未开始
+    return (status_desc, "⏳", "未开始")
+
 
 # 中文队名映射（ESPN英文 -> 中文）
 TEAM_NAME_MAP = {
@@ -127,7 +156,7 @@ def fetch_espn_scoreboard(date_str=None):
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{ESPN_LEAGUE_CODE}/scoreboard"
     if date_str:
         url += f"?dates={date_str}"
-    
+
     try:
         resp = requests.get(url, timeout=30)
         if resp.status_code == 200:
@@ -146,25 +175,25 @@ def fetch_all_matches():
     从开幕日到决赛日逐日查询
     """
     all_matches = []
-    
+
     # 世界杯日期范围 (北京时间)
     start_date = datetime(2026, 6, 11)
     end_date = datetime(2026, 7, 20)
-    
+
     current = start_date
     while current <= end_date:
         date_str = current.strftime("%Y%m%d")
         print(f"  抓取 {date_str} 的赛况...")
         data = fetch_espn_scoreboard(date_str)
-        
+
         if data and "events" in data:
             for event in data["events"]:
                 match = parse_espn_event(event)
                 if match:
                     all_matches.append(match)
-        
+
         current += timedelta(days=1)
-    
+
     return all_matches
 
 
@@ -173,43 +202,48 @@ def parse_espn_event(event):
     try:
         event_id = event.get("id", "")
         name = event.get("name", "")
-        
+
         # 解析比赛状态
         status_obj = event.get("status", {})
         status_type = status_obj.get("type", {})
         status_name = status_type.get("name", "STATUS_SCHEDULED")
         status_desc = status_type.get("description", "")
-        
-        status_info = ESPN_STATUS_MAP.get(status_name, (status_desc, "⏳", status_desc))
-        
+
+        status_info = get_status_fallback(status_name, status_desc)
+
         # 解析比赛信息
         competitions = event.get("competitions", [])
         if not competitions:
             return None
-        
+
         comp = competitions[0]
         competitors = comp.get("competitors", [])
-        
+
         home_team = None
         away_team = None
         home_score = None
         away_score = None
-        
+        home_id = None
+        away_id = None
+
         for c in competitors:
             team_name = c.get("team", {}).get("displayName", "Unknown")
             score = c.get("score", "")
             home_away = c.get("homeAway", "")
-            
+            team_id = c.get("team", {}).get("id", "")
+
             if home_away == "home":
                 home_team = translate_team(team_name)
                 home_score = score if score and score != "" else None
+                home_id = team_id
             elif home_away == "away":
                 away_team = translate_team(team_name)
                 away_score = score if score and score != "" else None
-        
+                away_id = team_id
+
         if not home_team or not away_team:
             return None
-        
+
         # 解析比赛时间
         start_time = None
         date_obj = comp.get("date")
@@ -219,52 +253,101 @@ def parse_espn_event(event):
                 start_time = dt.astimezone(TIMEZONE_BEIJING)
             except:
                 pass
-        
+
         # 解析场馆
         venue = comp.get("venue", {})
         venue_name = translate_venue(venue.get("fullName", ""))
-        
+
         # 解析小组信息
         group_name = ""
         for c in competitions:
             if c.get("group"):
                 group_name = c["group"].get("name", "")
                 break
-        
-        # 解析进球事件
+
+        # ========== 解析进球事件（增强版） ==========
         goals = []
         details = comp.get("details", [])
+
+        # 构建队名ID查找表
+        team_id_to_side = {}
+        for c in competitors:
+            tid = c.get("team", {}).get("id", "")
+            side = c.get("homeAway", "")
+            if tid:
+                team_id_to_side[tid] = side
+
         for detail in details:
             event_type = detail.get("type", {})
-            if event_type.get("id") == "70" or event_type.get("text") == "Goal":
-                clock = detail.get("clock", {})
-                time_display = clock.get("displayValue", "")
-                athletes = detail.get("athletesInvolved", [])
-                player_name = athletes[0].get("displayName", "未知球员") if athletes else "未知球员"
-                team_id = detail.get("team", {}).get("id", "")
-                
-                # 判断进球类型
-                goal_type = ""
-                if detail.get("penaltyKick"):
-                    goal_type = "(点球)"
-                elif detail.get("ownGoal"):
-                    goal_type = "(乌龙)"
-                elif detail.get("shootout"):
-                    goal_type = "(点球大战)"
-                
+            is_goal_event = (
+                event_type.get("id") == "70" or
+                event_type.get("text") == "Goal" or
+                event_type.get("description") == "Goal" or
+                event_type.get("text") == "Goal (Penalty)" or
+                event_type.get("text") == "Goal (Own)" or
+                event_type.get("description") == "Goal (Penalty)" or
+                event_type.get("description") == "Goal (Own)"
+            )
+            if not is_goal_event:
+                continue
+
+            clock = detail.get("clock", {})
+            time_display = clock.get("displayValue", "")
+
+            # 判断进球属于哪队
+            team_id = detail.get("team", {}).get("id", "")
+            team_side = team_id_to_side.get(team_id, "home")
+
+            # 判读是否为主队进球（用于显示队名）
+            team_name_display = home_team if team_side == "home" else away_team
+
+            # 判断进球类型
+            goal_type = ""
+            if detail.get("penaltyKick"):
+                goal_type = "（点球）"
+            elif detail.get("ownGoal"):
+                goal_type = "（乌龙）"
+            elif detail.get("shootout"):
+                goal_type = "（点球大战）"
+
+            # 获取助攻球员（如果有第二个athletesInvolved，通常是助攻者）
+            athletes = detail.get("athletesInvolved", [])
+            scorer = athletes[0] if len(athletes) > 0 else {}
+            assister = athletes[1] if len(athletes) > 1 else {}
+
+            player_name = scorer.get("displayName", "未知球员")
+            player_short = scorer.get("shortName", player_name)
+            player_jersey = scorer.get("jersey", "")
+            player_position = scorer.get("position", "")
+
+            # 助攻信息
+            assist_name = assister.get("displayName", "") if assister else ""
+
+            # 根据scoringPlay排除非得分事件
+            scoring_play = detail.get("scoringPlay", True)
+
+            if scoring_play or detail.get("ownGoal"):
                 goals.append({
                     "time": time_display,
                     "player": player_name,
+                    "player_short": player_short,
+                    "jersey": player_jersey,
+                    "position": player_position,
                     "team_id": team_id,
+                    "team_side": team_side,
+                    "team": team_name_display,
                     "type": goal_type,
+                    "assist": assist_name,
+                    "penalty": detail.get("penaltyKick", False),
+                    "own_goal": detail.get("ownGoal", False),
                 })
-        
+
         # 比分显示
         if home_score is not None and away_score is not None:
             score_display = f"{home_score}-{away_score}"
         else:
             score_display = "-"
-        
+
         return {
             "match_id": f"fifa-2026-{event_id}",
             "home": home_team,
@@ -286,6 +369,159 @@ def parse_espn_event(event):
         return None
 
 
+def refetch_finished_matches(matches):
+    """
+    重新拉取已结束比赛以补全进球数据
+    因为比赛进行中时ESPN API可能还没填充details
+    """
+    now = datetime.now(TIMEZONE_BEIJING)
+    refetched = 0
+    fixed = 0
+
+    for match in matches:
+        # 只处理已结束但无进球数据的比赛
+        if match["status"] not in FINISHED_STATUSES:
+            continue
+        if not match.get("espn_id"):
+            continue
+
+        # 如果有进球数据且进球数合理，跳过
+        if len(match.get("goals", [])) > 0:
+            continue
+
+        espn_id = match["espn_id"]
+        print(f"  重新拉取已完成比赛 {match['home']} vs {match['away']} (ID: {espn_id})...")
+
+        # 使用summary API获取单场比赛详情（包含完整细节）
+        try:
+            url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{ESPN_LEAGUE_CODE}/summary?event={espn_id}"
+            resp = requests.get(url, timeout=30)
+            if resp.status_code != 200:
+                continue
+
+            data = resp.json()
+            events = data.get("events", [])
+            if not events:
+                continue
+
+            event = events[0]
+            competitions = event.get("competitions", [])
+            if not competitions:
+                continue
+
+            comp = competitions[0]
+            details = comp.get("details", [])
+
+            if not details:
+                continue
+
+            refetched += 1
+
+            # 解析进球
+            competitors = comp.get("competitors", [])
+            team_id_to_side = {}
+            for c in competitors:
+                tid = c.get("team", {}).get("id", "")
+                side = c.get("homeAway", "")
+                if tid:
+                    team_id_to_side[tid] = side
+
+            home_team_name = match["home"]
+            away_team_name = match["away"]
+
+            goals = []
+            for detail in details:
+                event_type = detail.get("type", {})
+                is_goal = (
+                    event_type.get("id") == "70" or
+                    "Goal" in (event_type.get("text") or "") or
+                    "Goal" in (event_type.get("description") or "")
+                )
+                if not is_goal:
+                    continue
+
+                clock = detail.get("clock", {})
+                time_display = clock.get("displayValue", "")
+
+                team_id = detail.get("team", {}).get("id", "")
+                team_side = team_id_to_side.get(team_id, "home")
+                team_name_display = home_team_name if team_side == "home" else away_team_name
+
+                goal_type = ""
+                if detail.get("penaltyKick"):
+                    goal_type = "（点球）"
+                elif detail.get("ownGoal"):
+                    goal_type = "（乌龙）"
+                elif detail.get("shootout"):
+                    goal_type = "（点球大战）"
+
+                athletes = detail.get("athletesInvolved", [])
+                scorer = athletes[0] if len(athletes) > 0 else {}
+                assister = athletes[1] if len(athletes) > 1 else {}
+
+                player_name = scorer.get("displayName", "未知球员")
+                player_short = scorer.get("shortName", player_name)
+                player_jersey = scorer.get("jersey", "")
+                player_position = scorer.get("position", "")
+                assist_name = assister.get("displayName", "") if assister else ""
+                scoring_play = detail.get("scoringPlay", True)
+
+                if scoring_play or detail.get("ownGoal"):
+                    goals.append({
+                        "time": time_display,
+                        "player": player_name,
+                        "player_short": player_short,
+                        "jersey": player_jersey,
+                        "position": player_position,
+                        "team_id": team_id,
+                        "team_side": team_side,
+                        "team": team_name_display,
+                        "type": goal_type,
+                        "assist": assist_name,
+                        "penalty": detail.get("penaltyKick", False),
+                        "own_goal": detail.get("ownGoal", False),
+                    })
+
+            if goals:
+                match["goals"] = goals
+                fixed += 1
+                print(f"    -> 补全 {len(goals)} 个进球记录")
+
+        except Exception as e:
+            print(f"    -> 重新拉取失败: {e}")
+            continue
+
+    print(f"  重新拉取 {refetched} 场，补全 {fixed} 场的进球数据")
+    return matches
+
+
+def format_goal_line(goal):
+    """格式化单条进球信息为文本"""
+    parts = []
+    # 分钟 + 补时
+    parts.append(goal["time"])
+    # 球员名称
+    player = goal.get("player", "")
+    # 球衣号
+    jersey = goal.get("jersey", "")
+    if jersey:
+        parts.append(f"#{jersey}")
+    parts.append(player)
+    # 位置
+    position = goal.get("position", "")
+    if position:
+        parts.append(f"({position})")
+    # 进球类型
+    gtype = goal.get("type", "")
+    if gtype:
+        parts.append(gtype)
+    # 助攻
+    assist = goal.get("assist", "")
+    if assist:
+        parts.append(f"（助攻：{assist}）")
+    return " ".join(parts)
+
+
 def generate_ics(matches):
     """生成ICS日历文件"""
     cal = Calendar()
@@ -297,27 +533,27 @@ def generate_ics(matches):
     cal.add("x-wr-caldesc", "2026 FIFA 世界杯赛程与赛果（自动更新）")
     cal.add("x-published-ttl", "PT1H")
     cal.add("refresh-interval;value=duration", "PT1H")
-    
+
     now = datetime.now(TIMEZONE_UTC)
-    
+
     for match in matches:
         if not match.get("start_time"):
             continue
-        
+
         event = Event()
-        
+
         dt_start = match["start_time"].astimezone(TIMEZONE_UTC)
         dt_end = dt_start + timedelta(hours=2, minutes=45)
-        
+
         # 标题
         emoji = match["status_emoji"]
-        if match["status"] in ("Full Time", "FINAL"):
+        if match["status"] in FINISHED_STATUSES:
             summary = f"{emoji} {match['home']} {match['score']} {match['away']}"
-        elif match["status"] in ("In Progress", "Halftime", "First Half", "Second Half", "Extra Time", "Penalty Shootout"):
+        elif match["status"] in LIVE_STATUSES:
             summary = f"{emoji} {match['home']} {match['score']} {match['away']} ({match['status_cn']})"
         else:
             summary = f"{emoji} {match['home']} vs {match['away']}"
-        
+
         # 描述
         beijing_time = match["start_time"].strftime("%Y-%m-%d %H:%M")
         desc_lines = [
@@ -330,21 +566,23 @@ def generate_ics(matches):
             desc_lines.append(f"小组：{match['group']}")
         if match["score"] != "-":
             desc_lines.append(f"赛果：{match['home']} {match['score']} {match['away']}")
-        
-        # 添加进球球员信息
+
+        # 添加进球球员信息（增强版）
         if match.get("goals"):
             desc_lines.append("")
             desc_lines.append("⚽ 进球记录：")
             for goal in match["goals"]:
-                goal_line = f"  {goal['time']} {goal['player']} {goal['type']}"
+                team_side = goal.get("team_side", "")
+                team_mark = f" [{match['home']}]" if team_side == "home" else f" [{match['away']}]"
+                goal_line = f"  {format_goal_line(goal)}{team_mark}"
                 desc_lines.append(goal_line)
-        
+
         desc_lines.append("")
         desc_lines.append(f"ESPN：https://www.espn.com/soccer/match/_/gameId/{match['espn_id']}")
         desc_lines.append(f"自动更新，数据来源为ESPN公开数据")
-        
+
         description = "\n".join(desc_lines)
-        
+
         event.add("uid", f"{match['match_id']}@worldcup-calendar")
         event.add("dtstamp", now)
         event.add("created", now)
@@ -357,16 +595,16 @@ def generate_ics(matches):
         event.add("status", "CONFIRMED")
         event.add("transp", "OPAQUE")
         event.add("class", "PUBLIC")
-        
+
         # 比赛开始前30分钟提醒
         alarm = Alarm()
         alarm.add("action", "DISPLAY")
         alarm.add("description", f"比赛即将开始：{match['home']} vs {match['away']}")
         alarm.add("trigger", timedelta(minutes=-30))
         event.add_component(alarm)
-        
+
         cal.add_component(event)
-    
+
     return cal
 
 
@@ -381,13 +619,13 @@ def save_ics(cal, filepath):
 def generate_html(matches):
     """生成HTML订阅页面"""
     now = datetime.now(TIMEZONE_BEIJING)
-    
+
     # 按日期排序，取最近的比赛
     sorted_matches = sorted(
         [m for m in matches if m.get("start_time")],
         key=lambda x: x["start_time"]
     )
-    
+
     # 近期比赛（前后3天）
     recent = []
     for m in sorted_matches:
@@ -395,24 +633,24 @@ def generate_html(matches):
         if (dt - timedelta(hours=12)) <= now <= (dt + timedelta(days=3)):
             recent.append(m)
     recent = recent[:15]
-    
+
     # 统计
     total = len(matches)
-    finished = sum(1 for m in matches if m["status"] in ("Full Time", "FINAL"))
-    in_progress = sum(1 for m in matches if m["status"] in ("In Progress", "First Half", "Second Half", "Halftime", "Extra Time", "Penalty Shootout"))
+    finished = sum(1 for m in matches if m["status"] in FINISHED_STATUSES)
+    in_progress = sum(1 for m in matches if m["status"] in LIVE_STATUSES)
     scheduled = total - finished - in_progress
-    
+
     # 生成比赛列表HTML
     matches_html = ""
     for m in recent:
         beijing_time = m["start_time"].strftime("%Y-%m-%d %H:%M")
         group_info = f" | {m['group']}" if m["group"] else ""
-        
-        if m["status"] in ("Full Time", "FINAL"):
+
+        if m["status"] in FINISHED_STATUSES:
             status_class = "status-finished"
             status_text = "已结束"
             teams = f"{m['home']} {m['score']} {m['away']}"
-        elif m["status"] in ("In Progress", "First Half", "Second Half", "Halftime", "Extra Time", "Penalty Shootout"):
+        elif m["status"] in LIVE_STATUSES:
             status_class = "status-live"
             status_text = m["status_cn"]
             teams = f"{m['home']} {m['score']} {m['away']}"
@@ -420,19 +658,29 @@ def generate_html(matches):
             status_class = "status-scheduled"
             status_text = "未开始"
             teams = f"{m['home']} vs {m['away']}"
-        
-        # 进球球员信息
+
+        # 进球球员信息（增强版）
         goals_html = ""
         if m.get("goals"):
-            goals_list = []
-            for goal in m["goals"]:
-                goal_str = f"{goal['time']} {goal['player']}"
-                if goal['type']:
-                    goal_str += f" {goal['type']}"
-                goals_list.append(goal_str)
-            if goals_list:
-                goals_html = f'<div style="color: #a0a0a0; font-size: 0.8rem; margin-top: 4px;">⚽ {" · ".join(goals_list)}</div>'
-        
+            home_goals = [g for g in m["goals"] if g.get("team_side") == "home"]
+            away_goals = [g for g in m["goals"] if g.get("team_side") == "away"]
+            goal_lines = []
+
+            for g_label, g_list in [("🏠", home_goals), ("✈", away_goals)]:
+                for goal in g_list:
+                    g = f"{goal['time']}"
+                    if goal.get("jersey"):
+                        g += f" #{goal['jersey']}"
+                    g += f" {goal['player']}"
+                    if goal.get("type"):
+                        g += f" {goal['type']}"
+                    if goal.get("assist"):
+                        g += f"（{goal['assist']}）"
+                    goal_lines.append(g)
+
+            if goal_lines:
+                goals_html = f'<div style="color: #a0a0a0; font-size: 0.8rem; margin-top: 4px;">⚽ {" · ".join(goal_lines)}</div>'
+
         matches_html += f"""
                 <div class="match-item">
                     <div class="match-teams">
@@ -443,10 +691,10 @@ def generate_html(matches):
                     <span class="match-status {status_class}">{status_text}</span>
                 </div>
 """
-    
+
     # 更新时间
     update_time = now.strftime("%Y-%m-%d %H:%M:%S UTC+8")
-    
+
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -556,9 +804,9 @@ def generate_html(matches):
     <div class="container">
         <div class="header">
             <h1>🏆 2026世界杯日历订阅</h1>
-            <p>实时赛况自动更新 · 手机日历同步 · 一键分享</p>
+            <p>实时赛况自动更新 · 进球球员详情 · 手机日历同步</p>
         </div>
-        
+
         <div class="card">
             <h2>📊 赛事统计</h2>
             <div class="stats">
@@ -583,21 +831,21 @@ def generate_html(matches):
                 🕐 数据更新时间：{update_time}（每30分钟自动抓取ESPN数据）
             </div>
         </div>
-        
+
         <div class="card">
             <h2>📱 订阅链接</h2>
             <p>复制以下链接，按照下方教程导入到您的手机日历：</p>
-            
+
             <div class="subscription-link">
                 <div class="link-label">🌐 订阅链接 <span class="mirror-badge">GitHub Pages</span></div>
                 <code id="subscription-url">https://Fake-msn.github.io/worldcup-2026-calendar/worldcup-2026-calendar.ics</code>
             </div>
-            
+
             <div style="text-align: center;">
                 <button class="btn" onclick="copyLink()">📋 复制订阅链接</button>
                 <a href="worldcup-2026-calendar.ics" class="btn" download>📥 下载ICS文件</a>
             </div>
-            
+
             <div style="margin-top: 20px; padding: 15px; background: rgba(241, 196, 15, 0.1); border-left: 4px solid #f1c40f; border-radius: 8px;">
                 <p style="font-size: 0.9rem; color: #f1c40f; margin-bottom: 8px;">⚠️ 国内用户注意</p>
                 <p style="font-size: 0.85rem; color: #a0a0a0;">
@@ -614,7 +862,7 @@ def generate_html(matches):
                 </p>
             </div>
         </div>
-        
+
         <div class="card">
             <h2>📖 导入教程</h2>
             <div class="platform-tabs">
@@ -622,7 +870,7 @@ def generate_html(matches):
                 <div class="platform-tab" onclick="showPlatform('android')">Android</div>
                 <div class="platform-tab" onclick="showPlatform('google')">Google日历</div>
             </div>
-            
+
             <div id="ios" class="platform-content active">
                 <ol class="steps">
                     <li>打开<strong>设置</strong> → <strong>日历</strong> → <strong>账户</strong></li>
@@ -635,7 +883,7 @@ def generate_html(matches):
                     📌 快捷方式：直接在Safari中打开订阅链接，系统会自动提示添加日历。
                 </p>
             </div>
-            
+
             <div id="android" class="platform-content">
                 <ol class="steps">
                     <li>打开<strong>Google日历</strong>应用</li>
@@ -645,7 +893,7 @@ def generate_html(matches):
                     <li>日历将自动同步到您的设备</li>
                 </ol>
             </div>
-            
+
             <div id="google" class="platform-content">
                 <ol class="steps">
                     <li>访问 <strong>calendar.google.com</strong></li>
@@ -655,14 +903,14 @@ def generate_html(matches):
                 </ol>
             </div>
         </div>
-        
+
         <div class="card">
             <h2>📅 近期赛程</h2>
             <div class="match-list">
                 {matches_html}
             </div>
         </div>
-        
+
         <div class="card">
             <h2>⚙️ 技术说明</h2>
             <p><strong>数据来源：</strong>ESPN足球数据API（实时比分）</p>
@@ -670,15 +918,15 @@ def generate_html(matches):
             <p><strong>数据格式：</strong>标准ICS日历格式 (RFC 5545)</p>
             <p><strong>支持平台：</strong>iOS日历、Google日历、Outlook、小米日历等</p>
             <p><strong>提醒设置：</strong>比赛开始前30分钟自动提醒</p>
-            <p><strong>赛况显示：</strong>已结束显示比分，进行中显示实时状态</p>
+            <p><strong>进球信息：</strong>已结束比赛自动补全进球球员、球衣号、助攻信息</p>
         </div>
-        
+
         <div class="footer">
             <p>2026 FIFA World Cup Calendar Subscription Service</p>
             <p style="margin-top: 10px; font-size: 0.8rem;">数据仅供参考，请以FIFA官方公布为准</p>
         </div>
     </div>
-    
+
     <script>
         function copyLink() {{
             const url = document.getElementById('subscription-url').textContent;
@@ -686,7 +934,7 @@ def generate_html(matches):
                 alert('订阅链接已复制到剪贴板！');
             }});
         }}
-        
+
         function showPlatform(platform) {{
             document.querySelectorAll('.platform-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.platform-content').forEach(content => content.classList.remove('active'));
@@ -696,7 +944,7 @@ def generate_html(matches):
     </script>
 </body>
 </html>"""
-    
+
     filepath = HTML_OUTPUT_PATH
     os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else ".", exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
@@ -709,31 +957,40 @@ def main():
     print("2026 FIFA World Cup 实时赛况抓取器")
     print(f"运行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
-    
+
     # 1. 抓取所有比赛数据
-    print("\n[1/3] 从ESPN API抓取赛况数据...")
+    print("\n[1/4] 从ESPN API抓取赛况数据...")
     matches = fetch_all_matches()
     print(f"  共获取 {len(matches)} 场比赛")
-    
+
     if not matches:
         print("  未获取到任何比赛数据，退出")
         sys.exit(1)
-    
+
     # 统计
-    finished = sum(1 for m in matches if m["status"] in ("Full Time", "FINAL"))
-    in_progress = sum(1 for m in matches if m["status"] in ("In Progress",))
+    finished = sum(1 for m in matches if m["status"] in FINISHED_STATUSES)
+    in_progress = sum(1 for m in matches if m["status"] in LIVE_STATUSES)
     scheduled = len(matches) - finished - in_progress
     print(f"  已结束: {finished} | 进行中: {in_progress} | 未开始: {scheduled}")
-    
-    # 2. 生成ICS文件
-    print("\n[2/3] 生成ICS日历文件...")
+
+    # 2. 重新拉取已结束比赛补全进球数据
+    print("\n[2/4] 重新拉取已结束比赛补全进球数据...")
+    matches = refetch_finished_matches(matches)
+
+    # 统计进球数据覆盖情况
+    matches_with_goals = sum(1 for m in matches if m.get("goals") and len(m["goals"]) > 0)
+    total_goals = sum(len(m.get("goals", [])) for m in matches)
+    print(f"  有进球记录的场次: {matches_with_goals}，总进球数: {total_goals}")
+
+    # 3. 生成ICS文件
+    print("\n[3/4] 生成ICS日历文件...")
     cal = generate_ics(matches)
     save_ics(cal, ICS_OUTPUT_PATH)
-    
-    # 3. 生成HTML页面
-    print("\n[3/3] 生成HTML订阅页面...")
+
+    # 4. 生成HTML页面
+    print("\n[4/4] 生成HTML订阅页面...")
     generate_html(matches)
-    
+
     print(f"\n{'='*60}")
     print("全部完成!")
     print(f"{'='*60}")
