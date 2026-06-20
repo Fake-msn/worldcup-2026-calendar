@@ -1,0 +1,59 @@
+name: Update World Cup Calendar
+
+on:
+  schedule:
+    # 每30分钟运行一次（UTC时间）
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    # 允许手动触发
+
+jobs:
+  update-calendar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests icalendar pytz
+      
+      - name: Fetch match data and generate calendar
+        env:
+          ICS_OUTPUT: worldcup-2026-calendar.ics
+          HTML_OUTPUT: index.html
+        run: |
+          python fetch_and_generate.py
+      
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected"
+          fi
+      
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add worldcup-2026-calendar.ics index.html
+          git commit -m "🔄 Update calendar: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+      
+      - name: No changes summary
+        if: steps.check_changes.outputs.changed == 'false'
+        run: |
+          echo "Calendar data is up to date, no push needed"
