@@ -596,11 +596,14 @@ def generate_ics(matches):
         event.add("transp", "OPAQUE")
         event.add("class", "PUBLIC")
 
-        # 比赛开始前30分钟提醒
+        # 比赛开始前30分钟静默提醒（无提示音）
         alarm = Alarm()
         alarm.add("action", "DISPLAY")
         alarm.add("description", f"比赛即将开始：{match['home']} vs {match['away']}")
         alarm.add("trigger", timedelta(minutes=-30))
+        # 静音设置：Apple日历、Google日历、Outlook均不播放提示音
+        alarm.add("X-APPLE-CALENDAR-SOUND", "None")
+        alarm.add("X-WR-ALARMUID", f"alarm-{match['espn_id']}")
         event.add_component(alarm)
 
         cal.add_component(event)
