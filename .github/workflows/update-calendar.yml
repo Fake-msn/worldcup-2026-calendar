@@ -51,6 +51,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add worldcup-2026-calendar.ics index.html
           git commit -m "🔄 Update calendar: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main || true
           git push
       
       - name: No changes summary
