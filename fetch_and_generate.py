@@ -496,30 +496,48 @@ def refetch_finished_matches(matches):
 
 
 def format_goal_line(goal):
-    """格式化单条进球信息为文本"""
+    """格式化单条进球信息为易读文本"""
     parts = []
-    # 分钟 + 补时
-    parts.append(goal["time"])
-    # 球员名称
+
+    # 进球时间
+    parts.append(f"进球时间 {goal['time']}")
+
+    # 球员信息：球衣号 + 姓名
     player = goal.get("player", "")
-    # 球衣号
     jersey = goal.get("jersey", "")
-    if jersey:
-        parts.append(f"#{jersey}")
-    parts.append(player)
-    # 位置
+    if jersey and player:
+        parts.append(f"{jersey}号球员 {player}")
+    elif player:
+        parts.append(f"球员 {player}")
+
+    # 场上位置（展开缩写为中文）
     position = goal.get("position", "")
     if position:
-        parts.append(f"({position})")
+        pos_map = {
+            "GK": "门将", "CD": "中后卫", "CD-L": "左中卫", "CD-R": "右中卫",
+            "LB": "左后卫", "RB": "右后卫", "LWB": "左翼卫", "RWB": "右翼卫",
+            "DM": "后腰", "DM-L": "左后腰", "DM-R": "右后腰",
+            "CM": "中前卫", "CM-L": "左中前卫", "CM-R": "右中前卫",
+            "LM": "左前卫", "RM": "右前卫",
+            "AM": "前腰", "AM-L": "左前腰", "AM-R": "右前腰",
+            "LW": "左边锋", "RW": "右边锋",
+            "F": "前锋", "CF": "中锋", "CF-L": "左中锋", "CF-R": "右中锋",
+            "SS": "影锋", "SUB": "替补",
+        }
+        pos_cn = pos_map.get(position, position)
+        parts.append(f"位置：{pos_cn}")
+
     # 进球类型
     gtype = goal.get("type", "")
     if gtype:
         parts.append(gtype)
+
     # 助攻
     assist = goal.get("assist", "")
     if assist:
-        parts.append(f"（助攻：{assist}）")
-    return " ".join(parts)
+        parts.append(f"助攻：{assist}")
+
+    return "，".join(parts)
 
 
 def generate_ics(matches):
