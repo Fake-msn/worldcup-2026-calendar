@@ -495,6 +495,262 @@ def refetch_finished_matches(matches):
     return matches
 
 
+def translate_player(name):
+    """将常见球员英文名翻译为中文"""
+    PLAYER_CN = {
+        # 阿根廷
+        "Lionel Messi": "梅西", "Lautaro Martínez": "劳塔罗·马丁内斯",
+        "Julián Álvarez": "阿尔瓦雷斯", "Nicolás Tagliafico": "塔利亚菲科",
+        "Enzo Fernández": "恩佐·费尔南德斯", "Rodrigo De Paul": "德保罗",
+        "Emiliano Martínez": "达米安·马丁内斯", "Cristian Romero": "罗梅罗",
+        "Alexis Mac Allister": "麦卡利斯特", "Ángel Di María": "迪马利亚",
+        "Nahuel Molina": "莫利纳", "Marcos Acuña": "阿库尼亚",
+        "Leandro Paredes": "帕雷德斯", "Nicolás Otamendi": "奥塔门迪",
+        "Paulo Dybala": "迪巴拉", "Julián Quiñones": "基尼奥内斯",
+        # 巴西
+        "Vinícius Júnior": "维尼修斯", "Matheus Cunha": "库尼亚",
+        "Casemiro": "卡塞米罗", "Marquinhos": "马尔基尼奥斯",
+        "Alisson Becker": "阿利松", "Thiago Silva": "蒂亚戈·席尔瓦",
+        "Neymar": "内马尔", "Richarlison": "理查利森",
+        "Raphinha": "拉菲尼亚", "Bruno Guimarães": "吉马良斯",
+        "Lucas Paquetá": "帕凯塔", "Rodrygo": "罗德里戈",
+        "Gabriel Jesus": "热苏斯", "Gabriel Martinelli": "马丁内利",
+        # 法国
+        "Kylian Mbappé": "姆巴佩", "Bradley Barcola": "巴尔科拉",
+        "Antoine Griezmann": "格列兹曼", "Olivier Giroud": "吉鲁",
+        "Hugo Lloris": "洛里斯", "Raphaël Varane": "瓦拉内",
+        "Adrien Rabiot": "拉比奥特", "Aurélien Tchouaméni": "楚阿梅尼",
+        "Ousmane Dembélé": "登贝莱", "Theo Hernández": "特奥·埃尔南德斯",
+        "Ibrahima Konaté": "科纳特", "Jules Koundé": "孔德",
+        "Dayot Upamecano": "于帕梅卡诺", "Marcus Thuram": "图拉姆",
+        "Randal Kolo Muani": "科洛·穆阿尼",
+        # 英格兰
+        "Jude Bellingham": "贝林厄姆", "Marcus Rashford": "拉什福德",
+        "Harry Kane": "凯恩", "Bukayo Saka": "萨卡",
+        "Phil Foden": "福登", "Declan Rice": "赖斯",
+        "Jordan Pickford": "皮克福德", "John Stones": "斯通斯",
+        "Kyle Walker": "沃克", "Luke Shaw": "卢克·肖",
+        "Jack Grealish": "格拉利什", "Raheem Sterling": "斯特林",
+        "James Maddison": "麦迪逊", "Ivan Toney": "托尼",
+        "Cole Palmer": "帕尔默", "Ollie Watkins": "沃特金斯",
+        "Martin Baturina": "巴图里纳", "Petar Musa": "穆萨",
+        # 德国
+        "Jamal Musiala": "穆西亚拉", "Kai Havertz": "哈弗茨",
+        "Felix Nmecha": "恩梅沙", "Livano Comenencia": "科梅嫩西亚",
+        "Deniz Undav": "翁达夫", "Joshua Kimmich": "基米希",
+        "Toni Kroos": "克罗斯", "Ilkay Gündogan": "京多安",
+        "Manuel Neuer": "诺伊尔", "Niklas Süle": "聚勒",
+        "Antonio Rüdiger": "吕迪格", "Leroy Sané": "萨内",
+        "Serge Gnabry": "格纳布里", "Thomas Müller": "穆勒",
+        "Florian Wirtz": "维尔茨", "Niclas Füllkrug": "菲尔克鲁格",
+        # 西班牙
+        "Pedri": "佩德里", "Gavi": "加维",
+        "Rodri": "罗德里", "Dani Olmo": "奥尔莫",
+        "Ferran Torres": "费兰·托雷斯", "Álvaro Morata": "莫拉塔",
+        "Marco Asensio": "阿森西奥", "Aymeric Laporte": "拉波尔特",
+        "Unai Simón": "乌奈·西蒙", "Dani Carvajal": "卡瓦哈尔",
+        "Jordi Alba": "阿尔巴", "Sergio Busquets": "布斯克茨",
+        # 葡萄牙
+        "Cristiano Ronaldo": "C罗", "Bruno Fernandes": "布鲁诺·费尔南德斯",
+        "Bernardo Silva": "贝尔纳多·席尔瓦", "Diogo Jota": "若塔",
+        "Rúben Dias": "鲁本·迪亚斯", "João Cancelo": "坎塞洛",
+        "Raphaël Guerreiro": "格雷罗", "Vitinha": "维蒂尼亚",
+        "Nuno Mendes": "努诺·门德斯", "Pepe": "佩佩",
+        "Rui Patrício": "帕特里西奥", "Gonçalo Ramos": "贡萨洛·拉莫斯",
+        "Diogo Dalot": "达洛特", "Otávio": "奥塔维奥",
+        # 荷兰
+        "Virgil van Dijk": "范戴克", "Frenkie de Jong": "弗兰基·德容",
+        "Memphis Depay": "德佩", "Cody Gakpo": "加克波",
+        "Denzel Dumfries": "邓弗里斯", "Daley Blind": "布林德",
+        "Stefan de Vrij": "德弗里", "Marten de Roon": "德容恩",
+        "Teun Koopmeiners": "库普梅纳斯", "Xavi Simons": "西蒙斯",
+        "Wout Weghorst": "韦格霍斯特", "Donyell Malen": "马伦",
+        "Jeremie Frimpong": "弗林蓬", "Nathan Aké": "阿克",
+        # 比利时
+        "Kevin De Bruyne": "德布劳内", "Romelu Lukaku": "卢卡库",
+        "Eden Hazard": "阿扎尔", "Thibaut Courtois": "库尔图瓦",
+        "Toby Alderweireld": "阿尔德韦雷尔德", "Jan Vertonghen": "维尔通亨",
+        "Dries Mertens": "梅尔滕斯", "Leandro Trossard": "特罗萨德",
+        "Youri Tielemans": "蒂勒曼斯", "Loïc Openda": "奥彭达",
+        # 日本
+        "Keito Nakamura": "中村敬斗", "Takefusa Kubo": "久保建英",
+        "Daichi Kamada": "镰田大地", "Ritsu Doan": "堂安律",
+        "Kaoru Mitoma": "三笘薰", "Wataru Endo": "远藤航",
+        "Hiroki Sakai": "酒井宏树", "Maya Yoshida": "吉田麻也",
+        "Shuichi Gonda": "权田修一", "Ao Tanaka": "田中碧",
+        "Koki Machida": "町田浩树", "Yuki Soma": "相马勇纪",
+        "Shuto Machino": "町田修斗", "Reo Hatate": "旗手怜央",
+        "Ayase Ueda": "上田绮世", "Crysencio Summerville": "萨默维尔",
+        # 韩国
+        "Hwang In-Beom": "黄仁范", "Oh Hyeon-Gyu": "吴贤圭",
+        "Son Heung-Min": "孙兴慜", "Lee Kang-In": "李刚仁",
+        "Kim Min-Jae": "金玟哉", "Cho Gue-Sung": "曹圭成",
+        "Hwang Hee-Chan": "黄喜灿", "Lee Jae-Sung": "李在成",
+        "Jo Hyeon-Woo": "赵贤祐", "Kim Seung-Guk": "金承国",
+        "Park Ji-Sung": "朴智星", "Ki Sung-Yueng": "寄诚庸",
+        # 澳大利亚
+        "Nestory Irankunda": "伊兰昆达", "Mathew Leckie": "莱基",
+        "Aaron Mooy": "穆伊", "Jackson Irvine": "欧文",
+        "Mitchell Duke": "杜克", "Craig Goodwin": "古德温",
+        "Aziz Behich": "贝希奇", "Harry Souttar": "索塔尔",
+        "Milos Degenek": "德格内克", "Ryan Strain": "斯特兰",
+        "Connor Metcalfe": "梅特卡夫", "Keanu Baccus": "巴库斯",
+        # 美国
+        "Folarin Balogun": "巴洛贡", "Giovanni Reyna": "雷纳",
+        "Christian Pulisic": "普利西奇", "Weston McKennie": "麦肯尼",
+        "Tyler Adams": "亚当斯", "Yunus Musah": "穆萨",
+        "Sergiño Dest": "德斯特", "Timothy Weah": "维阿",
+        "Matt Turner": "特纳", "Antonee Robinson": "罗宾逊",
+        "Ricardo Pepi": "佩皮", "Brenden Aaronson": "阿伦森",
+        "Chris Richards": "理查兹", "Cameron Carter-Vickers": "卡特-维克斯",
+        # 墨西哥
+        "Luis Romo": "罗莫", "Santiago Giménez": "希门尼斯",
+        "Hirving Lozano": "洛萨诺", "Raúl Jiménez": "希门尼斯",
+        "Edson Álvarez": "阿尔瓦雷斯", "Jorge Sánchez": "桑切斯",
+        "Guillermo Ochoa": "奥乔亚", "Néstor Araujo": "阿劳霍",
+        "Uriel Antuna": "安图纳", "Carlos Rodríguez": "罗德里格斯",
+        "César Montes": "蒙特斯", "Gerardo Arteaga": "阿尔特亚加",
+        # 挪威
+        "Erling Haaland": "哈兰德", "Martin Ødegaard": "厄德高",
+        "Alexander Isak": "伊萨克", "Viktor Gyökeres": "哲凯赖什",
+        "Matthias Svanberg": "斯万贝里", "Yasin Ayari": "阿亚里",
+        "Fredrik Aursnes": "奥尔斯内斯", "Kristoffer Ajer": "阿耶",
+        "Ståle Solbakken": "索尔巴肯", "Julian Ryerson": "赖尔森",
+        "Antonio Nusa": "努萨", "Oscar Bobb": "博布",
+        # 瑞典
+        "Dejan Kulusevski": "库卢塞夫斯基", "Emil Forsberg": "福斯贝里",
+        "Isak Bergmann Jóhannesson": "约翰内松", "Viktor Lindelöf": "林德洛夫",
+        "Mattias Svanberg": "斯万贝里", "Anthony Elanga": "埃兰加",
+        "Ibrahim Mbaye": "姆巴耶", "Brian Brobbey": "布罗贝",
+        # 瑞士
+        "Rubén Vargas": "巴尔加斯", "Johan Manzambi": "曼赞比",
+        "Ermin Mahmic": "马赫米奇", "Granit Xhaka": "扎卡",
+        "Xherdan Shaqiri": "沙奇里", "Yann Sommer": "索默",
+        "Manuel Akanji": "阿坎吉", "Breel Embolo": "恩博洛",
+        "Denis Zakaria": "扎卡里亚", "Remo Freuler": "弗鲁勒",
+        # 摩洛哥
+        "Ismael Saibari": "赛巴里", "Hakim Ziyech": "齐耶赫",
+        "Achraf Hakimi": "阿什拉夫·哈基米", "Youssef En-Nesyri": "恩内斯里",
+        "Romain Saïss": "赛斯", "Sofyan Amrabat": "阿姆拉巴特",
+        "Nayef Aguerd": "阿格尔德", "Azzedine Ounahi": "乌纳希",
+        "Amir Richardson": "理查德森", "Bilal El Khannouss": "汗努斯",
+        # 伊朗
+        "Ramin Rezaeian": "雷扎伊安", "Mehdi Taremi": "塔雷米",
+        "Sardar Azmoun": "阿兹蒙", "Alireza Jahanbakhsh": "贾汉巴赫什",
+        "Saman Ghoddos": "古多斯", "Ehsan Hajsafi": "哈吉萨菲",
+        # 新西兰
+        "Elijah Just": "贾斯特", "Chris Wood": "伍德",
+        "Joe Bell": "贝尔", "Liberato Cacace": "卡卡塞",
+        "Marco Rojas": "罗哈斯", "Kosta Barbarouses": "巴巴鲁塞斯",
+        # 加拿大
+        "Cyle Larin": "拉林", "Jonathan David": "乔纳森·戴维",
+        "Alphonso Davies": "阿方索·戴维斯", "Stephen Eustáquio": "欧斯塔基奥",
+        "Tajon Buchanan": "布坎南", "Ismaël Koné": "科内",
+        "Milan Borjan": "博尔扬", "Kamal Miller": "米勒",
+        "Moise Bombito": "邦比托", "Richie Laryea": "拉里亚",
+        # 哥伦比亚
+        "Daniel Muñoz": "穆尼奥斯", "Luis Díaz": "路易斯·迪亚斯",
+        "James Rodríguez": "哈梅斯·罗德里格斯", "Dávinson Sánchez": "桑切斯",
+        "Jefferson Lerma": "莱尔马", "Yerry Mina": "米纳",
+        "David Ospina": "奥斯皮纳", "Juan Cuadrado": "夸德拉多",
+        "Jhon Arias": "阿里亚斯", "Jhon Córdoba": "科尔多瓦",
+        # 埃及
+        "Emam Ashour": "阿舒尔", "Mohamed Salah": "萨拉赫",
+        "Omar Marmoush": "马尔穆什", "Trézéguet": "特雷泽盖",
+        "Ahmed Hegazi": "海加齐", "Mohamed Elneny": "埃尔内尼",
+        "Achraf Bencharki": "本沙尔基", "Hussein El Shahat": "沙哈特",
+        # 沙特阿拉伯
+        "Abdulelah Al-Amri": "阿姆里", "Salem Al-Dawsari": "道萨里",
+        "Feras Al-Brikan": "布里坎", "Yasser Al-Shahrani": "谢赫拉尼",
+        # 乌拉圭
+        "Federico Valverde": "巴尔韦德", "Darwin Núñez": "努涅斯",
+        "Rodrigo Bentancur": "本坦库尔", "José Giménez": "希门尼斯",
+        "Ronald Araújo": "阿劳霍", "Nahitan Nández": "南德斯",
+        "Giorgian De Arrascaeta": "德阿拉斯卡埃塔", "Maxi Gómez": "马克西·戈麦斯",
+        # 苏格兰
+        "John McGinn": "麦金", "Scott McTominay": "麦克托米奈",
+        "Andrew Robertson": "罗伯逊", "Angus Gunn": "古恩",
+        "Lewis Ferguson": "弗格森", "Che Adams": "亚当斯",
+        "Stuart Armstrong": "阿姆斯特朗", "Ryan Christie": "克里斯蒂",
+        # 科特迪瓦
+        "Amad Diallo": "阿马德·迪亚洛", "Sébastien Haller": "阿莱",
+        "Franck Kessié": "凯西", "Serge Aurier": "奥里耶",
+        "Simon Adingra": "阿丁格拉", "Ousmane Diomande": "迪奥曼德",
+        # 厄瓜多尔
+        "Kendry Páez": "帕斯", "Moisés Caicedo": "凯塞多",
+        "Piero Hincapié": "因卡皮耶", "Enner Valencia": "巴伦西亚",
+        "Gonzalo Plata": "普拉塔", "Jeremy Sarmiento": "萨缅托",
+        # 突尼斯
+        "Youssef Msakni": "姆萨克尼", "Wahbi Khazri": "哈兹里",
+        "Naim Sliti": "斯利蒂", "Farouk Ben Mustapha": "穆斯塔法",
+        # 波黑
+        "Edin Dzeko": "哲科", "Miralem Pjanić": "皮亚尼奇",
+        # 奥地利
+        "Romano Schmid": "施密德", "Marcel Sabitzer": "萨比策",
+        "Konrad Laimer": "莱默尔", "Marko Arnautović": "阿瑙托维奇",
+        "David Alaba": "阿拉巴", "Sasa Kalajdzic": "卡拉季奇",
+        "Ali Olwan": "奥尔万",
+        # 约旦
+        "Musa Al-Taamari": "塔马里", "Yazan Al-Naimat": "奈马特",
+        "Noor Al-Rawabdeh": "拉瓦布德", "Abdelrahman Yasser": "亚塞尔",
+        # 捷克
+        "Michal Sadílek": "萨迪莱克", "Vladimir Coufal": "库法尔",
+        "Tomáš Souček": "绍切克", "Patrik Schick": "希克",
+        "Adam Hložek": "赫洛热克", "Antonín Barák": "巴拉克",
+        # 南非
+        "Percy Tau": "陶", "Evidence Makgopa": "马格科帕",
+        "Teboho Mokoena": "莫科纳", "Themba Zwane": "兹瓦内",
+        # 海地
+        "Duckens Nazon": "纳宗", "Mechac Pierre": "皮埃尔",
+        # 巴拉圭
+        "Matías Galarza": "加拉尔萨", "Miguel Almirón": "阿尔米隆",
+        "Óscar Cardozo": "卡多佐", "Gustavo Gómez": "古斯塔沃·戈麦斯",
+        "Roberto Fernández": "罗伯特·费尔南德斯",
+        "Maurício": "毛里西奥",
+        # 卡塔尔
+        "Akram Afif": "阿菲夫", "Almoez Ali": "莫埃兹·阿里",
+        "Boualem Khoukhi": "胡希", "Saad Al-Sheeb": "西卜",
+        # 土耳其
+        "Hakan Çalhanoğlu": "恰尔汗奥卢", "Cengiz Ünder": "云代尔",
+        "Arda Güler": "居莱尔", "Orkun Kökçü": "克克居",
+        "Kerem Aktürkoğlu": "阿克图尔科卢", "Mert Müldür": "米尔迪尔",
+        # 佛得角
+        "Ryan Mendes": "门德斯", "Garry Rodrigues": "罗德里格斯",
+        "Stopira": "斯托皮拉", "Djiku": "吉库",
+        # 刚果（金）
+        "Cedric Bakambu": "巴坎布", "Gaël Kakuta": "卡库塔",
+        "Arthur Masuaku": "马苏阿库", "Chancel Mbemba": "姆本巴",
+        # 加纳
+        "Caleb Yirenkyi": "伊伦基", "Mohammed Kudus": "库杜斯",
+        "Thomas Partey": "帕尔特伊", "Jordan Ayew": "乔丹·阿尤",
+        "Inaki Williams": "伊尼亚基·威廉姆斯", "Alexander Djiku": "吉库",
+        # 巴拿马
+        "Cecilio Waterman": "沃特曼", "José Fajardo": "法哈多",
+        "Eric Davis": "戴维斯", "Michael Amir Murillo": "穆里略",
+        # 克罗地亚
+        "Luka Modrić": "莫德里奇", "Ivan Perišić": "佩里西奇",
+        "Joško Gvardiol": "格瓦迪奥尔", "Andrej Kramarić": "克拉马里奇",
+        "Dominik Livaković": "利瓦科维奇", "Dejan Lovren": "洛夫伦",
+        "Marcelo Brozović": "布罗佐维奇", "Mateo Kovačić": "科瓦契奇",
+        # 乌兹别克斯坦
+        "Otabek Shukurov": "舒库罗夫", "Jasurbek Yakhshiboev": "雅赫希博耶夫",
+        "Igor Sergeev": "谢尔盖耶夫", "Odiljon Hamrobekov": "哈姆罗别科夫",
+        # 伊拉克
+        "Aymen Hussein": "侯赛因", "Ali Jasim": "贾西姆",
+        "Zaid Tahseen": "塔赫辛", "Ahmed Jalal": "贾拉勒",
+        # 塞内加尔
+        "Sadio Mané": "马内", "Ismaila Sarr": "萨尔",
+        "Édouard Mendy": "门迪", "Kalidou Koulibaly": "库利巴利",
+        "Papa Gueye": "盖耶", "Iliman Ndiaye": "恩迪亚耶",
+        "Nicolas Jackson": "尼古拉斯·杰克逊",
+        # 挪威补充
+        "Erling Haaland": "哈兰德", "Alexander Sørloth": "索尔洛特",
+        # 哥伦比亚补充
+        "Jhon Arias": "阿里亚斯",
+    }
+    return PLAYER_CN.get(name, name)
+
+
 def format_goal_line(goal):
     """格式化单条进球信息为易读文本"""
     parts = []
@@ -502,8 +758,9 @@ def format_goal_line(goal):
     # 进球时间
     parts.append(f"进球时间 {goal['time']}")
 
-    # 球员信息：球衣号 + 姓名
+    # 球员信息：球衣号 + 姓名（中文）
     player = goal.get("player", "")
+    player = translate_player(player)
     jersey = goal.get("jersey", "")
     if jersey and player:
         parts.append(f"{jersey}号球员 {player}")
@@ -535,6 +792,7 @@ def format_goal_line(goal):
     # 助攻
     assist = goal.get("assist", "")
     if assist:
+        assist = translate_player(assist)
         parts.append(f"助攻：{assist}")
 
     return "，".join(parts)
